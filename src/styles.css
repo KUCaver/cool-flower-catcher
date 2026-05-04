@@ -152,6 +152,151 @@ h1 {
   box-shadow: 0 18px 54px rgba(1, 16, 9, 0.25);
 }
 
+.result-panel {
+  width: min(520px, 100%);
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(251, 255, 251, 0.94);
+  box-shadow: 0 18px 54px rgba(1, 16, 9, 0.25);
+}
+
+.result-heading {
+  text-align: center;
+}
+
+.result-heading span {
+  color: var(--green);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.result-heading h2 {
+  margin-top: 4px;
+  color: var(--green-dark);
+  font-size: 48px;
+  line-height: 1;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.result-grid > div {
+  min-height: 82px;
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  text-align: center;
+}
+
+.result-grid span,
+.ranking-form span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.result-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.ranking-form {
+  display: grid;
+  grid-template-columns: 1fr 112px;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.ranking-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.ranking-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  padding: 12px;
+  background: white;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.ranking-form button,
+.secondary-button {
+  border: 0;
+  background: var(--green-dark);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.ranking-form button:disabled {
+  cursor: default;
+  opacity: 0.54;
+}
+
+.ranking-list {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking-list li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.ranking-list span {
+  color: var(--pink);
+  font-weight: 900;
+}
+
+.ranking-list strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.ranking-list em {
+  color: var(--green-dark);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.ranking-empty {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.secondary-button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px;
+  background: var(--pink);
+}
+
+.secondary-button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
 .start-panel h2 {
   font-size: 28px;
   line-height: 1.15;
@@ -280,6 +425,32 @@ h1 {
   line-height: 1;
 }
 
+.phase-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.phase-strip span {
+  color: var(--green-dark);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.phase-strip strong {
+  color: var(--pink);
+  font-size: 20px;
+}
+
+.phase-strip.fever {
+  border-color: rgba(244, 191, 55, 0.72);
+  background: linear-gradient(135deg, rgba(255, 216, 86, 0.42), rgba(124, 246, 189, 0.3));
+}
+
 .divider {
   height: 1px;
   background: var(--line);
@@ -390,5 +561,17 @@ h1 {
   .control-panel {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ranking-form {
+    grid-template-columns: 1fr;
+  }
+
+  .ranking-form button {
+    min-height: 44px;
   }
 }

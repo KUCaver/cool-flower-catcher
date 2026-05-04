@@ -98,18 +98,18 @@ export function canStartWithHand(status: HandDistanceStatus): boolean {
 
 export function getCatchScaleForDistance(status: HandDistanceStatus): number {
   if (status === "too-far") {
-    return 1.35;
+    return 1.7;
   }
 
   if (status === "far") {
-    return 1.25;
+    return 1.55;
   }
 
   if (status === "close") {
-    return 1.08;
+    return 1.42;
   }
 
-  return 1;
+  return 1.35;
 }
 
 export function toMirroredCanvasPoint(point: Point, width: number, height: number): Point {

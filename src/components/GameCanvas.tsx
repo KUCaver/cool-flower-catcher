@@ -1,6 +1,6 @@
 import { RefObject, useEffect, useRef } from "react";
 import { FlowerGameEngine, PLAY_AREA } from "../game/flowerGame";
-import type { Flower, GameSnapshot, GameStatus } from "../game/types";
+import type { FloatingText, Flower, GameSnapshot, GameStatus } from "../game/types";
 import type { HandFrame } from "../hooks/useHandTracking";
 import type { Landmark, Point } from "../vision/gesture";
 import { getCatchScaleForDistance, toMirroredCanvasPoint } from "../vision/gesture";
@@ -133,6 +133,7 @@ export function GameCanvas({
         if (currentFrame) {
           engine.attemptCatch({
             palm: currentFrame.mirroredPalm,
+            isGrab: currentGrab,
             grabStarted,
             now,
             hitboxScale: getCatchScaleForDistance(currentFrame.distanceStatus),
@@ -145,7 +146,11 @@ export function GameCanvas({
       }
 
       const snapshot = engine.snapshot(now);
+      if (snapshot.isFever) {
+        drawFeverOverlay(context, width, height, now);
+      }
       drawFlowers(context, snapshot.flowers, now);
+      drawFeedbacks(context, snapshot.feedbacks, now);
       drawHandOverlay(context, handFrameRef.current, width, height);
 
       if (now - lastSnapshotAtRef.current > 100) {
@@ -241,9 +246,30 @@ function drawPlayArea(context: CanvasRenderingContext2D, width: number, height: 
   context.restore();
 }
 
+function drawFeverOverlay(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  now: number,
+) {
+  const shimmer = 0.12 + Math.sin(now / 120) * 0.04;
+
+  context.save();
+  const gradient = context.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, `rgba(124, 246, 189, ${shimmer})`);
+  gradient.addColorStop(0.5, `rgba(255, 216, 86, ${shimmer + 0.04})`);
+  gradient.addColorStop(1, `rgba(240, 91, 145, ${shimmer})`);
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, width, height);
+  context.restore();
+}
+
 function drawFlowers(context: CanvasRenderingContext2D, flowers: Flower[], now: number) {
   for (const flower of flowers) {
-    const lifeRatio = Math.max(0, Math.min(1, (flower.expiresAt - now) / 2600));
+    const lifeRatio = Math.max(
+      0,
+      Math.min(1, (flower.expiresAt - now) / (flower.expiresAt - flower.bornAt)),
+    );
     const pulse = 1 + Math.sin(now / 120 + flower.id) * 0.04;
     const radius = flower.radius * pulse;
 
@@ -253,30 +279,66 @@ function drawFlowers(context: CanvasRenderingContext2D, flowers: Flower[], now: 
 
     context.beginPath();
     context.arc(0, 0, radius + 15, 0, Math.PI * 2);
-    context.fillStyle = flower.kind === "gold" ? "rgba(255, 218, 85, 0.18)" : "rgba(255, 116, 165, 0.16)";
+    context.fillStyle =
+      flower.kind === "wilted" ? "rgba(33, 21, 27, 0.24)" : `${flower.color}2e`;
     context.fill();
 
-    const petalColor =
-      flower.kind === "gold" ? "#ffd856" : flower.kind === "speed" ? "#8fe7ff" : "#ff7aae";
+    const petalCount = flower.kind === "coollower" ? 8 : flower.kind === "wilted" ? 5 : 6;
+    const rotationStep = (Math.PI * 2) / petalCount;
 
-    for (let i = 0; i < 6; i += 1) {
-      context.rotate(Math.PI / 3);
+    for (let i = 0; i < petalCount; i += 1) {
+      context.rotate(rotationStep);
       context.beginPath();
       context.ellipse(0, -radius * 0.58, radius * 0.34, radius * 0.58, 0, 0, Math.PI * 2);
-      context.fillStyle = petalColor;
+      context.fillStyle = flower.color;
       context.fill();
     }
 
     context.beginPath();
     context.arc(0, 0, radius * 0.28, 0, Math.PI * 2);
-    context.fillStyle = flower.kind === "gold" ? "#8b5b13" : "#ffe27a";
+    context.fillStyle = flower.accentColor;
     context.fill();
+
+    if (flower.kind === "wilted") {
+      context.beginPath();
+      context.moveTo(-radius * 0.42, -radius * 0.42);
+      context.lineTo(radius * 0.42, radius * 0.42);
+      context.moveTo(radius * 0.42, -radius * 0.42);
+      context.lineTo(-radius * 0.42, radius * 0.42);
+      context.strokeStyle = "rgba(255,255,255,0.72)";
+      context.lineWidth = 4;
+      context.stroke();
+    }
 
     context.lineWidth = 3;
     context.strokeStyle = "rgba(255,255,255,0.78)";
     context.stroke();
     context.restore();
   }
+}
+
+function drawFeedbacks(context: CanvasRenderingContext2D, feedbacks: FloatingText[], now: number) {
+  context.save();
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+
+  for (const feedback of feedbacks) {
+    const life = Math.max(
+      0,
+      Math.min(1, (feedback.expiresAt - now) / (feedback.expiresAt - feedback.bornAt)),
+    );
+    const rise = (1 - life) * 44;
+
+    context.globalAlpha = life;
+    context.font = `900 ${feedback.size}px Inter, system-ui, sans-serif`;
+    context.lineWidth = 5;
+    context.strokeStyle = "rgba(4, 18, 12, 0.72)";
+    context.strokeText(feedback.text, feedback.x, feedback.y - rise);
+    context.fillStyle = feedback.color;
+    context.fillText(feedback.text, feedback.x, feedback.y - rise);
+  }
+
+  context.restore();
 }
 
 function drawHandOverlay(
@@ -325,6 +387,8 @@ function drawHandOverlay(
   context.arc(frame.mirroredPalm.x, frame.mirroredPalm.y, frame.isGrab ? 54 : 40, 0, Math.PI * 2);
   context.lineWidth = frame.isGrab ? 6 : 3;
   context.strokeStyle = frame.isGrab ? "#ffdf5d" : "#7cf6bd";
+  context.fillStyle = frame.isGrab ? "rgba(255, 223, 93, 0.18)" : "rgba(124, 246, 189, 0.1)";
+  context.fill();
   context.stroke();
   context.restore();
 }

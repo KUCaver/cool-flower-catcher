@@ -1,18 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GameCanvas } from "./components/GameCanvas";
+import { ResultScreen } from "./components/ResultScreen";
 import type { GameSnapshot, GameStatus } from "./game/types";
+import { createEmptyFlowerCounts } from "./game/types";
 import { useCamera } from "./hooks/useCamera";
 import { useHandTracking } from "./hooks/useHandTracking";
+import {
+  loadRankings,
+  normalizeNickname,
+  saveRankingEntry,
+  type RankingEntry,
+} from "./storage/rankingStorage";
 import { canStartWithHand, type HandDistanceStatus, type Point } from "./vision/gesture";
 
 const INITIAL_SNAPSHOT: GameSnapshot = {
   status: "idle",
   score: 0,
   combo: 0,
+  bestCombo: 0,
+  multiplier: 1,
+  feverMultiplier: 1,
+  phase: "opening",
+  isFever: false,
+  title: "새싹 가드너",
   caught: 0,
   missed: 0,
   remainingMs: 0,
   flowers: [],
+  flowerCounts: createEmptyFlowerCounts(),
+  feedbacks: [],
 };
 
 function App() {
@@ -23,6 +39,9 @@ function App() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [gameStatus, setGameStatus] = useState<GameStatus>("idle");
   const [snapshot, setSnapshot] = useState<GameSnapshot>(INITIAL_SNAPSHOT);
+  const [rankings, setRankings] = useState<RankingEntry[]>([]);
+  const [nickname, setNickname] = useState("");
+  const [rankingSaved, setRankingSaved] = useState(false);
   const camera = useCamera(videoRef);
   const handTracking = useHandTracking({
     videoRef,
@@ -41,8 +60,13 @@ function App() {
       return;
     }
 
+    setRankingSaved(false);
     setCountdown(3);
   }, [canStart, countdown]);
+
+  useEffect(() => {
+    setRankings(loadRankings());
+  }, []);
 
   useEffect(() => {
     if (countdown === null) {
@@ -118,12 +142,35 @@ function App() {
   const seconds = Math.ceil(snapshot.remainingMs / 1000);
   const pinchRatio = handTracking.frame?.pinchRatio;
   const palmWidthPx = handTracking.frame?.palmWidthPx;
+  const totalMultiplier = snapshot.multiplier * snapshot.feverMultiplier;
   const calibration = getCalibrationCopy({
     cameraStatus: camera.status,
     trackerStatus: handTracking.status,
     distanceStatus: handDistanceStatus,
     hasHand: Boolean(handTracking.frame),
   });
+
+  const saveRanking = useCallback(() => {
+    if (rankingSaved) {
+      return;
+    }
+
+    const cleanNickname = normalizeNickname(nickname);
+    if (cleanNickname.length < 3) {
+      return;
+    }
+
+    setRankings(
+      saveRankingEntry({
+        nickname: cleanNickname,
+        score: snapshot.score,
+        title: snapshot.title,
+        bestCombo: snapshot.bestCombo,
+        caught: snapshot.caught,
+      }),
+    );
+    setRankingSaved(true);
+  }, [nickname, rankingSaved, snapshot.bestCombo, snapshot.caught, snapshot.score, snapshot.title]);
 
   return (
     <main className="app-shell">
@@ -154,49 +201,60 @@ function App() {
 
           {gameStatus !== "playing" && (
             <div className="start-overlay">
-              <div className="start-panel">
-                <h2>
-                  {countdown !== null
-                    ? countdown === 0
-                      ? "시작!"
-                      : countdown
-                    : gameStatus === "finished"
-                      ? "게임 종료"
+              {gameStatus === "finished" ? (
+                <ResultScreen
+                  snapshot={snapshot}
+                  nickname={nickname}
+                  rankings={rankings}
+                  saved={rankingSaved}
+                  canRestart={canStart}
+                  onNicknameChange={setNickname}
+                  onSaveRanking={saveRanking}
+                  onRestart={startGame}
+                />
+              ) : (
+                <div className="start-panel">
+                  <h2>
+                    {countdown !== null
+                      ? countdown === 0
+                        ? "시작!"
+                        : countdown
                       : calibration.title}
-                </h2>
-                <p>{countdown !== null ? "손을 중앙에 유지하세요." : calibration.message}</p>
-                {camera.status === "ready" && (
-                  <div className={`calibration-card ${getDistanceClass(handDistanceStatus)}`}>
-                    <span>{getDistanceLabel(handDistanceStatus)}</span>
-                    <strong>{palmWidthPx ? `${Math.round(palmWidthPx)}px` : "-"}</strong>
+                  </h2>
+                  <p>{countdown !== null ? "손을 중앙에 유지하세요." : calibration.message}</p>
+                  {camera.status === "ready" && (
+                    <div className={`calibration-card ${getDistanceClass(handDistanceStatus)}`}>
+                      <span>{getDistanceLabel(handDistanceStatus)}</span>
+                      <strong>{palmWidthPx ? `${Math.round(palmWidthPx)}px` : "-"}</strong>
+                    </div>
+                  )}
+                  <div className="overlay-actions">
+                    {camera.status !== "ready" ? (
+                      <button type="button" className="primary-button" onClick={camera.startCamera}>
+                        카메라 켜기
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={!canStart || countdown !== null}
+                        onClick={startGame}
+                      >
+                        {countdown !== null
+                          ? "카운트다운 중"
+                          : canStart
+                            ? "3초 카운트다운 시작"
+                            : handTracking.status === "loading"
+                              ? "모델 로딩 중"
+                              : "손 위치를 맞춰주세요"}
+                      </button>
+                    )}
                   </div>
-                )}
-                <div className="overlay-actions">
-                  {camera.status !== "ready" ? (
-                    <button type="button" className="primary-button" onClick={camera.startCamera}>
-                      카메라 켜기
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="primary-button"
-                      disabled={!canStart || countdown !== null}
-                      onClick={startGame}
-                    >
-                      {countdown !== null
-                        ? "카운트다운 중"
-                        : canStart
-                          ? "3초 카운트다운 시작"
-                          : handTracking.status === "loading"
-                            ? "모델 로딩 중"
-                            : "손 위치를 맞춰주세요"}
-                    </button>
+                  {(camera.error || handTracking.error) && (
+                    <p className="error-message">{camera.error || handTracking.error}</p>
                   )}
                 </div>
-                {(camera.error || handTracking.error) && (
-                  <p className="error-message">{camera.error || handTracking.error}</p>
-                )}
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -216,13 +274,18 @@ function App() {
               <strong>{snapshot.combo}</strong>
             </div>
             <div>
-              <span>잡은 꽃</span>
-              <strong>{snapshot.caught}</strong>
+              <span>최고 콤보</span>
+              <strong>{snapshot.bestCombo}</strong>
             </div>
             <div>
-              <span>놓친 꽃</span>
-              <strong>{snapshot.missed}</strong>
+              <span>배율</span>
+              <strong>x{totalMultiplier.toFixed(totalMultiplier % 1 === 0 ? 0 : 1)}</strong>
             </div>
+          </div>
+
+          <div className={`phase-strip ${snapshot.isFever ? "fever" : ""}`}>
+            <span>{snapshot.isFever ? "FEVER TIME" : getPhaseLabel(snapshot.phase)}</span>
+            <strong>{snapshot.caught}송이</strong>
           </div>
 
           <div className="divider" />
@@ -291,6 +354,18 @@ function getDistanceLabel(status: HandDistanceStatus | null) {
 
 function getDistanceClass(status: HandDistanceStatus | null) {
   return status ? `distance-${status}` : "distance-none";
+}
+
+function getPhaseLabel(phase: GameSnapshot["phase"]) {
+  if (phase === "fever") {
+    return "피버";
+  }
+
+  if (phase === "rush") {
+    return "러시";
+  }
+
+  return "오프닝";
 }
 
 function getCalibrationCopy(params: {

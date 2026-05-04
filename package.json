@@ -11,7 +11,8 @@
     "branch:list": "git branch -vv",
     "branch:initial": "git switch backup/initial-mvp",
     "branch:main": "git switch main",
-    "branch:festival": "git switch codex/festival-distance-calibration"
+    "branch:festival": "git switch codex/festival-distance-calibration",
+    "branch:gameplay": "git switch codex/gameplay-arcade-loop"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "latest",

@@ -15,6 +15,7 @@
 | `main` | 초기 MVP. 안정 복구 기준 | `340cc2c` |
 | `backup/initial-mvp` | 초기 MVP 고정 백업 | `340cc2c` |
 | `codex/festival-distance-calibration` | 축제 거리/캘리브레이션 개선 버전 | `af18e41` 이후 |
+| `codex/gameplay-arcade-loop` | 꽃 타입/콤보/피버/결과/랭킹을 넣은 1차 게임화 버전 | `codex/festival-distance-calibration`에서 분기 |
 
 원칙:
 
@@ -41,6 +42,12 @@ npm run branch:initial
 
 ```bash
 npm run branch:festival
+```
+
+게임화 작업 브랜치로 전환:
+
+```bash
+npm run branch:gameplay
 ```
 
 개발 서버 실행:
@@ -119,13 +126,38 @@ npm run verify
 
 우선순위 높은 순서:
 
-1. 게임화 1차: `docs/GAME_DESIGN_PROMPT.md` 기준으로 꽃 타입, 콤보, 피버, 결과 칭호, localStorage 랭킹 추가
-2. 결과 화면 강화: 최고 점수, 최고 콤보, 칭호
-3. localStorage 랭킹 저장
-4. 방해 꽃 또는 감점 꽃 추가
-5. 운영자 설정 패널: 게임 시간, 민감도, 거리 기준값
-6. MediaPipe 모델 파일 로컬 저장으로 오프라인 운영 안정화
-7. 포토카드/결과 이미지 생성
+1. 게임화 2차: 물방울/쿨브리즈/햇살꽃 파워업 추가
+2. 운영자 설정 패널: 게임 시간, 민감도, 거리 기준값
+3. MediaPipe 모델 파일 로컬 저장으로 오프라인 운영 안정화
+4. 포토카드/결과 이미지 생성
+5. 실제 웹캠 거리별 QA 결과를 문서화
+
+## 게임화 1차 변경 요약
+
+브랜치: `codex/gameplay-arcade-loop`
+
+추가된 내용:
+
+- `gameConfig.ts` 기준으로 게임 시간, ROI, 스폰 속도, 꽃 타입 설정 분리
+- 꽃 타입 4종 추가: 기본꽃, 반짝꽃, 쿨라워꽃, 시든꽃
+- 콤보 배율 추가: x1.0, x1.2, x1.5, x2.0
+- 마지막 5초 `COOLLOWER FEVER` 연출과 점수 배율 추가
+- 시든꽃 감점 및 콤보 초기화
+- 점수 float text, 콤보 text, 피버 overlay 추가
+- 결과 화면 추가: 최종 점수, 최고 콤보, 잡은 꽃, 시든꽃, 칭호
+- localStorage 랭킹 추가: 닉네임과 점수만 저장, 카메라 영상 저장 없음
+
+되돌리는 방법:
+
+```bash
+git switch codex/festival-distance-calibration
+```
+
+초기 MVP까지 되돌려 확인하려면:
+
+```bash
+git switch backup/initial-mvp
+```
 
 ## 안전 규칙
 
