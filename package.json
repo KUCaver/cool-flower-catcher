@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5174",
     "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4174"
+    "preview": "vite preview --host 127.0.0.1 --port 4174",
+    "verify": "npm run build",
+    "branch:list": "git branch -vv",
+    "branch:initial": "git switch backup/initial-mvp",
+    "branch:main": "git switch main",
+    "branch:festival": "git switch codex/festival-distance-calibration"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "latest",

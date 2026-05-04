@@ -24,6 +24,13 @@ npm run dev
 
 브라우저에서 `http://127.0.0.1:5174`를 열고 카메라 권한을 허용합니다.
 
+## 프로젝트 관리
+
+- 브랜치, 복구, 다음 작업 지시문은 `docs/PROJECT_RUNBOOK.md`에 정리되어 있습니다.
+- 초기 MVP 확인: `npm run branch:initial`
+- 축제 보정 버전 확인: `npm run branch:festival`
+- 빌드 검증: `npm run verify`
+
 ## 판정 방식
 
 - MediaPipe Hand Landmarker의 사전학습 모델을 사용합니다.
