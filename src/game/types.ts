@@ -1,6 +1,6 @@
 import type { Point } from "../vision/gesture";
 
-export const FLOWER_KIND_KEYS = ["basic", "spark", "coollower", "wilted"] as const;
+export const FLOWER_KIND_KEYS = ["basic", "spark", "coollower", "pollution"] as const;
 
 export type FlowerKind = (typeof FLOWER_KIND_KEYS)[number];
 
@@ -66,6 +66,6 @@ export function createEmptyFlowerCounts(): FlowerCounts {
     basic: 0,
     spark: 0,
     coollower: 0,
-    wilted: 0,
+    pollution: 0,
   };
 }

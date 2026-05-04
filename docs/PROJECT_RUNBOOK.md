@@ -66,6 +66,7 @@ Windows exe 생성:
 
 ```bash
 npm run build
+Remove-Item .\launcher\CoolFlowerCatcherLauncher\app-dist.zip -ErrorAction SilentlyContinue
 Compress-Archive -Path .\dist\* -DestinationPath .\launcher\CoolFlowerCatcherLauncher\app-dist.zip -Force
 dotnet publish .\launcher\CoolFlowerCatcherLauncher\CoolFlowerCatcherLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o .\launcher\publish
 ```
@@ -153,12 +154,12 @@ launcher\publish\쿨라워꽃잡기.exe
 추가된 내용:
 
 - `gameConfig.ts` 기준으로 게임 시간, ROI, 스폰 속도, 꽃 타입 설정 분리
-- 꽃 타입 4종 추가: 기본꽃, 반짝꽃, 쿨라워꽃, 시든꽃
+- 꽃 타입 4종 추가: 기본꽃, 반짝꽃, 쿨라워꽃, 오염방울
 - 콤보 배율 추가: x1.0, x1.2, x1.5, x2.0
 - 마지막 5초 `COOLLOWER FEVER` 연출과 점수 배율 추가
-- 시든꽃 감점 및 콤보 초기화
+- 오염방울 감점 및 콤보 초기화
 - 점수 float text, 콤보 text, 피버 overlay 추가
-- 결과 화면 추가: 최종 점수, 최고 콤보, 잡은 꽃, 시든꽃, 칭호
+- 결과 화면 추가: 최종 점수, 최고 콤보, 잡은 꽃, 오염방울, 칭호
 - localStorage 랭킹 추가: 닉네임과 점수만 저장, 카메라 영상 저장 없음
 
 되돌리는 방법:

@@ -81,14 +81,14 @@ export const FLOWER_TYPES: Record<FlowerKind, FlowerTypeConfig> = {
       fever: 18,
     },
   },
-  wilted: {
-    kind: "wilted",
-    label: "시든꽃",
+  pollution: {
+    kind: "pollution",
+    label: "오염방울",
     points: -10,
     radius: 48,
     lifeMs: 1700,
-    color: "#8d7480",
-    accentColor: "#513a44",
+    color: "#4b2639",
+    accentColor: "#9cff58",
     spawnWeights: {
       opening: 0,
       rush: 12,

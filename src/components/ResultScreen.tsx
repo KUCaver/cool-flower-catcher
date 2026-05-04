@@ -46,8 +46,8 @@ export function ResultScreen({
           <strong>{snapshot.flowerCounts.coollower}</strong>
         </div>
         <div>
-          <span>시든꽃</span>
-          <strong>{snapshot.flowerCounts.wilted}</strong>
+          <span>오염방울</span>
+          <strong>{snapshot.flowerCounts.pollution}</strong>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { RefObject, useEffect, useRef } from "react";
 import { FlowerGameEngine, PLAY_AREA } from "../game/flowerGame";
 import type { FloatingText, Flower, GameSnapshot, GameStatus } from "../game/types";
-import type { HandFrame } from "../hooks/useHandTracking";
+import type { HandFrame, TrackedHand } from "../hooks/useHandTracking";
 import type { Landmark, Point } from "../vision/gesture";
 import { getCatchScaleForDistance, toMirroredCanvasPoint } from "../vision/gesture";
 
@@ -51,9 +51,10 @@ export function GameCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef(new FlowerGameEngine());
   const handFrameRef = useRef<HandFrame | null>(null);
-  const previousGrabRef = useRef(false);
+  const previousGrabRef = useRef(new Map<string, boolean>());
   const gameStatusRef = useRef<GameStatus>(gameStatus);
   const lastSnapshotAtRef = useRef(0);
+  const canvasMetricsRef = useRef({ width: 960, height: 540, pixelRatio: 1 });
 
   useEffect(() => {
     handFrameRef.current = handFrame;
@@ -73,10 +74,11 @@ export function GameCanvas({
       const rect = canvas.getBoundingClientRect();
       const width = Math.max(1, Math.round(rect.width));
       const height = Math.max(1, Math.round(rect.height));
-      const pixelRatio = window.devicePixelRatio || 1;
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
 
       canvas.width = Math.round(width * pixelRatio);
       canvas.height = Math.round(height * pixelRatio);
+      canvasMetricsRef.current = { width, height, pixelRatio };
       onCanvasSize({ x: width, y: height });
     };
 
@@ -95,7 +97,7 @@ export function GameCanvas({
 
     const rect = canvas.getBoundingClientRect();
     engineRef.current.start(performance.now(), rect.width, rect.height);
-    previousGrabRef.current = false;
+    previousGrabRef.current.clear();
     onGameStatusChange("playing");
   }, [onGameStatusChange, runId]);
 
@@ -111,10 +113,7 @@ export function GameCanvas({
         return;
       }
 
-      const rect = canvas.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-      const pixelRatio = window.devicePixelRatio || 1;
+      const { width, height, pixelRatio } = canvasMetricsRef.current;
 
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       context.clearRect(0, 0, width, height);
@@ -127,22 +126,29 @@ export function GameCanvas({
       if (gameStatusRef.current === "playing") {
         engine.update(now, width, height);
         const currentFrame = handFrameRef.current;
-        const currentGrab = currentFrame?.isGrab ?? false;
-        const grabStarted = currentGrab && !previousGrabRef.current;
+        const currentHands = currentFrame?.hands ?? [];
+        const currentHandIds = new Set(currentHands.map((hand) => hand.id));
 
-        if (currentFrame) {
-          engine.attemptCatch({
-            palm: currentFrame.mirroredPalm,
-            isGrab: currentGrab,
-            grabStarted,
-            now,
-            hitboxScale: getCatchScaleForDistance(currentFrame.distanceStatus),
-          });
+        for (const handId of previousGrabRef.current.keys()) {
+          if (!currentHandIds.has(handId)) {
+            previousGrabRef.current.delete(handId);
+          }
         }
 
-        previousGrabRef.current = currentGrab;
+        for (const hand of currentHands) {
+          const previousGrab = previousGrabRef.current.get(hand.id) ?? false;
+          const grabStarted = hand.isGrab && !previousGrab;
+          engine.attemptCatch({
+            palm: hand.mirroredPalm,
+            isGrab: hand.isGrab,
+            grabStarted,
+            now,
+            hitboxScale: getCatchScaleForDistance(hand.distanceStatus),
+          });
+          previousGrabRef.current.set(hand.id, hand.isGrab);
+        }
       } else {
-        previousGrabRef.current = false;
+        previousGrabRef.current.clear();
       }
 
       const snapshot = engine.snapshot(now);
@@ -280,10 +286,16 @@ function drawFlowers(context: CanvasRenderingContext2D, flowers: Flower[], now: 
     context.beginPath();
     context.arc(0, 0, radius + 15, 0, Math.PI * 2);
     context.fillStyle =
-      flower.kind === "wilted" ? "rgba(33, 21, 27, 0.24)" : `${flower.color}2e`;
+      flower.kind === "pollution" ? "rgba(33, 21, 27, 0.36)" : `${flower.color}2e`;
     context.fill();
 
-    const petalCount = flower.kind === "coollower" ? 8 : flower.kind === "wilted" ? 5 : 6;
+    if (flower.kind === "pollution") {
+      drawPollutionDrop(context, radius, lifeRatio);
+      context.restore();
+      continue;
+    }
+
+    const petalCount = flower.kind === "coollower" ? 8 : 6;
     const rotationStep = (Math.PI * 2) / petalCount;
 
     for (let i = 0; i < petalCount; i += 1) {
@@ -299,22 +311,47 @@ function drawFlowers(context: CanvasRenderingContext2D, flowers: Flower[], now: 
     context.fillStyle = flower.accentColor;
     context.fill();
 
-    if (flower.kind === "wilted") {
-      context.beginPath();
-      context.moveTo(-radius * 0.42, -radius * 0.42);
-      context.lineTo(radius * 0.42, radius * 0.42);
-      context.moveTo(radius * 0.42, -radius * 0.42);
-      context.lineTo(-radius * 0.42, radius * 0.42);
-      context.strokeStyle = "rgba(255,255,255,0.72)";
-      context.lineWidth = 4;
-      context.stroke();
-    }
-
     context.lineWidth = 3;
     context.strokeStyle = "rgba(255,255,255,0.78)";
     context.stroke();
     context.restore();
   }
+}
+
+function drawPollutionDrop(context: CanvasRenderingContext2D, radius: number, lifeRatio: number) {
+  context.save();
+
+  const wobble = 1 + (1 - lifeRatio) * 0.08;
+  context.scale(wobble, 1);
+
+  context.beginPath();
+  context.moveTo(0, -radius * 0.88);
+  context.bezierCurveTo(radius * 0.56, -radius * 0.28, radius * 0.78, radius * 0.08, radius * 0.5, radius * 0.48);
+  context.bezierCurveTo(radius * 0.18, radius * 0.94, -radius * 0.42, radius * 0.84, -radius * 0.56, radius * 0.3);
+  context.bezierCurveTo(-radius * 0.68, -radius * 0.08, -radius * 0.42, -radius * 0.42, 0, -radius * 0.88);
+  context.closePath();
+  context.fillStyle = "#4b2639";
+  context.fill();
+  context.lineWidth = 4;
+  context.strokeStyle = "rgba(255,255,255,0.78)";
+  context.stroke();
+
+  context.beginPath();
+  context.arc(radius * 0.16, -radius * 0.04, radius * 0.26, 0, Math.PI * 2);
+  context.fillStyle = "#9cff58";
+  context.fill();
+
+  context.beginPath();
+  context.moveTo(radius * 0.16, -radius * 0.2);
+  context.lineTo(radius * 0.16, radius * 0.06);
+  context.moveTo(radius * 0.16, radius * 0.2);
+  context.lineTo(radius * 0.16, radius * 0.22);
+  context.lineWidth = 4;
+  context.lineCap = "round";
+  context.strokeStyle = "#17310f";
+  context.stroke();
+
+  context.restore();
 }
 
 function drawFeedbacks(context: CanvasRenderingContext2D, feedbacks: FloatingText[], now: number) {
@@ -351,44 +388,54 @@ function drawHandOverlay(
     return;
   }
 
+  const hands = frame.hands.length ? frame.hands : [frame];
+  const activeHandId = frame.id;
   const toCanvas = (landmark: Landmark) => toMirroredCanvasPoint(landmark, width, height);
 
   context.save();
   context.lineCap = "round";
   context.lineJoin = "round";
 
-  for (const [from, to] of HAND_CONNECTIONS) {
-    const a = frame.landmarks[from];
-    const b = frame.landmarks[to];
+  for (const hand of hands) {
+    const isActive = hand.id === activeHandId;
 
-    if (!a || !b) {
-      continue;
+    for (const [from, to] of HAND_CONNECTIONS) {
+      const a = hand.landmarks[from];
+      const b = hand.landmarks[to];
+
+      if (!a || !b) {
+        continue;
+      }
+
+      const start = toCanvas(a);
+      const end = toCanvas(b);
+      context.beginPath();
+      context.moveTo(start.x, start.y);
+      context.lineTo(end.x, end.y);
+      context.lineWidth = isActive ? 4 : 3;
+      context.strokeStyle = hand.isGrab
+        ? "rgba(255, 223, 93, 0.9)"
+        : isActive
+          ? "rgba(124, 246, 189, 0.82)"
+          : "rgba(193, 230, 212, 0.58)";
+      context.stroke();
     }
 
-    const start = toCanvas(a);
-    const end = toCanvas(b);
+    for (const landmark of hand.landmarks) {
+      const point = toCanvas(landmark);
+      context.beginPath();
+      context.arc(point.x, point.y, isActive ? 4 : 3, 0, Math.PI * 2);
+      context.fillStyle = isActive ? "#f6fff9" : "rgba(246, 255, 249, 0.7)";
+      context.fill();
+    }
+
     context.beginPath();
-    context.moveTo(start.x, start.y);
-    context.lineTo(end.x, end.y);
-    context.lineWidth = 4;
-    context.strokeStyle = frame.isGrab ? "rgba(255, 223, 93, 0.9)" : "rgba(124, 246, 189, 0.82)";
+    context.arc(hand.mirroredPalm.x, hand.mirroredPalm.y, hand.isGrab ? 54 : 40, 0, Math.PI * 2);
+    context.lineWidth = hand.isGrab ? 6 : isActive ? 3 : 2;
+    context.strokeStyle = hand.isGrab ? "#ffdf5d" : isActive ? "#7cf6bd" : "rgba(193, 230, 212, 0.7)";
+    context.fillStyle = hand.isGrab ? "rgba(255, 223, 93, 0.18)" : "rgba(124, 246, 189, 0.1)";
+    context.fill();
     context.stroke();
   }
-
-  for (const landmark of frame.landmarks) {
-    const point = toCanvas(landmark);
-    context.beginPath();
-    context.arc(point.x, point.y, 4, 0, Math.PI * 2);
-    context.fillStyle = "#f6fff9";
-    context.fill();
-  }
-
-  context.beginPath();
-  context.arc(frame.mirroredPalm.x, frame.mirroredPalm.y, frame.isGrab ? 54 : 40, 0, Math.PI * 2);
-  context.lineWidth = frame.isGrab ? 6 : 3;
-  context.strokeStyle = frame.isGrab ? "#ffdf5d" : "#7cf6bd";
-  context.fillStyle = frame.isGrab ? "rgba(255, 223, 93, 0.18)" : "rgba(124, 246, 189, 0.1)";
-  context.fill();
-  context.stroke();
   context.restore();
 }

@@ -142,6 +142,7 @@ function App() {
   const seconds = Math.ceil(snapshot.remainingMs / 1000);
   const pinchRatio = handTracking.frame?.pinchRatio;
   const palmWidthPx = handTracking.frame?.palmWidthPx;
+  const handCount = handTracking.frame?.hands.length ?? 0;
   const totalMultiplier = snapshot.multiplier * snapshot.feverMultiplier;
   const calibration = getCalibrationCopy({
     cameraStatus: camera.status,
@@ -308,6 +309,11 @@ function App() {
           <div className="debug-readout">
             <span>현재 pinch</span>
             <strong>{pinchRatio ? pinchRatio.toFixed(2) : "-"}</strong>
+          </div>
+
+          <div className="debug-readout">
+            <span>인식 손</span>
+            <strong>{handCount ? `${handCount}개` : "-"}</strong>
           </div>
 
           <div className={`debug-readout distance ${getDistanceClass(handDistanceStatus)}`}>

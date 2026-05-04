@@ -162,14 +162,14 @@ export class FlowerGameEngine {
     this.grabBufferUntil = 0;
     this.flowerCounts[flower.kind] += 1;
 
-    if (flower.kind === "wilted") {
+    if (flower.kind === "pollution") {
       this.score = Math.max(0, this.score + flower.points);
       this.combo = 0;
       this.feedbacks.push(
         this.createFeedback({
           x: flower.x,
           y: flower.y,
-          text: "앗, 시든꽃!",
+          text: "앗, 오염방울!",
           color: "#b00020",
           now,
           size: 24,
@@ -254,7 +254,7 @@ export class FlowerGameEngine {
         continue;
       }
 
-      if (flower.kind !== "wilted") {
+      if (flower.kind !== "pollution") {
         this.missed += 1;
         this.combo = Math.max(this.combo - 1, 0);
       }

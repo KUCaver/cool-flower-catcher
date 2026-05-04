@@ -26,9 +26,9 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>) {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30, max: 30 },
+          width: { ideal: 960 },
+          height: { ideal: 540 },
+          frameRate: { ideal: 24, max: 30 },
           facingMode: "user",
         },
       });

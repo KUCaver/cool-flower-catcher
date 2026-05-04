@@ -2,6 +2,7 @@ import { RefObject, useEffect, useRef, useState } from "react";
 import type { HandLandmarkerResult } from "@mediapipe/tasks-vision";
 import { createHandTracker, type HandTracker } from "../vision/handLandmarker";
 import {
+  canStartWithHand,
   detectGrab,
   getHandDistanceStatus,
   getPalmCenter,
@@ -13,8 +14,12 @@ import {
 } from "../vision/gesture";
 
 type TrackerStatus = "idle" | "loading" | "ready" | "error";
+const HAND_DETECTION_INTERVAL_MS = 42;
 
-export type HandFrame = {
+export type TrackedHand = {
+  id: string;
+  index: number;
+  handedness: string;
   landmarks: Landmark[];
   palm: Point;
   mirroredPalm: Point;
@@ -22,6 +27,10 @@ export type HandFrame = {
   pinchRatio: number;
   palmWidthPx: number;
   distanceStatus: HandDistanceStatus;
+};
+
+export type HandFrame = TrackedHand & {
+  hands: TrackedHand[];
   raw: HandLandmarkerResult;
 };
 
@@ -37,6 +46,8 @@ export function useHandTracking(params: {
   const [frame, setFrame] = useState<HandFrame | null>(null);
   const trackerRef = useRef<HandTracker | null>(null);
   const lastStatePublishRef = useRef(0);
+  const lastDetectionAtRef = useRef(0);
+  const activeHandIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,30 +96,56 @@ export function useHandTracking(params: {
       const tracker = trackerRef.current;
 
       if (video && tracker && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        if (timestampMs - lastDetectionAtRef.current < HAND_DETECTION_INTERVAL_MS) {
+          animationFrame = window.requestAnimationFrame(detectLoop);
+          return;
+        }
+
+        lastDetectionAtRef.current = timestampMs;
         const result = tracker.detect(video, timestampMs);
-        const landmarks = result.landmarks[0] as Landmark[] | undefined;
+        const hands = result.landmarks
+          .map((landmarks, index): TrackedHand | null => {
+            if (!landmarks.length) {
+              return null;
+            }
 
-        if (landmarks?.length) {
-          const palm = getPalmCenter(landmarks);
-          const grab = detectGrab(landmarks, grabThreshold);
-          const mirroredPalm = toMirroredCanvasPoint(palm, canvasSize.x, canvasSize.y);
-          const palmWidthPx = getPalmWidthPx(landmarks, video.videoWidth);
-          const distanceStatus = getHandDistanceStatus(palmWidthPx);
+            const typedLandmarks = landmarks as Landmark[];
+            const palm = getPalmCenter(typedLandmarks);
+            const grab = detectGrab(typedLandmarks, grabThreshold);
+            const mirroredPalm = toMirroredCanvasPoint(palm, canvasSize.x, canvasSize.y);
+            const palmWidthPx = getPalmWidthPx(typedLandmarks, video.videoWidth);
+            const distanceStatus = getHandDistanceStatus(palmWidthPx);
+            const handedness = result.handedness[index]?.[0]?.categoryName ?? `Hand ${index + 1}`;
 
-          if (timestampMs - lastStatePublishRef.current > 33) {
-            lastStatePublishRef.current = timestampMs;
-            setFrame({
-              landmarks,
+            return {
+              id: handedness === "Left" || handedness === "Right" ? handedness : `hand-${index}`,
+              index,
+              handedness,
+              landmarks: typedLandmarks,
               palm,
               mirroredPalm,
               isGrab: grab.isGrab,
               pinchRatio: grab.pinchRatio,
               palmWidthPx,
               distanceStatus,
+            };
+          })
+          .filter((hand): hand is TrackedHand => hand !== null);
+
+        if (hands.length) {
+          const activeHand = selectActiveHand(hands, activeHandIdRef.current);
+          activeHandIdRef.current = activeHand.id;
+
+          if (timestampMs - lastStatePublishRef.current > 33) {
+            lastStatePublishRef.current = timestampMs;
+            setFrame({
+              ...activeHand,
+              hands,
               raw: result,
             });
           }
         } else if (timestampMs - lastStatePublishRef.current > 120) {
+          activeHandIdRef.current = null;
           lastStatePublishRef.current = timestampMs;
           setFrame(null);
         }
@@ -129,4 +166,15 @@ export function useHandTracking(params: {
     error,
     frame,
   };
+}
+
+function selectActiveHand(hands: TrackedHand[], previousActiveId: string | null) {
+  const previousActive = hands.find((hand) => hand.id === previousActiveId);
+
+  if (previousActive) {
+    return previousActive;
+  }
+
+  const usableHand = hands.find((hand) => canStartWithHand(hand.distanceStatus));
+  return usableHand ?? hands[0];
 }

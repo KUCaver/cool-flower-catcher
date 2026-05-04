@@ -43,24 +43,40 @@ exitEvent.Wait();
 
 static string ExtractAppDist()
 {
-    var targetRoot = Path.Combine(
+    var runsRoot = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "CoolFlowerCatcher",
-        "embedded-dist");
+        "runs");
 
-    if (Directory.Exists(targetRoot))
-    {
-        Directory.Delete(targetRoot, recursive: true);
-    }
+    Directory.CreateDirectory(runsRoot);
+    TryCleanOldRuns(runsRoot);
 
+    var targetRoot = Path.Combine(
+        runsRoot,
+        $"run-{Environment.ProcessId}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
     Directory.CreateDirectory(targetRoot);
 
     using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("app-dist.zip")
         ?? throw new InvalidOperationException("내장된 앱 파일을 찾을 수 없습니다.");
     using var archive = new ZipArchive(resource, ZipArchiveMode.Read);
-    archive.ExtractToDirectory(targetRoot);
+    archive.ExtractToDirectory(targetRoot, overwriteFiles: true);
 
     return targetRoot;
+}
+
+static void TryCleanOldRuns(string runsRoot)
+{
+    foreach (var directory in Directory.EnumerateDirectories(runsRoot))
+    {
+        try
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+        catch
+        {
+            // A previous browser/server can briefly hold files. Ignore and use a fresh run directory.
+        }
+    }
 }
 
 static int FindAvailablePort(int preferredPort)
