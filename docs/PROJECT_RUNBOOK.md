@@ -57,6 +57,15 @@ npm run verify
 
 ## Codex에게 바로 줄 지시문
 
+### 게임화 작업 시작
+
+```txt
+쿨라워꽃잡기 프로젝트에서 게임화 작업을 시작해줘.
+먼저 `docs/PROJECT_RUNBOOK.md`와 `docs/GAME_DESIGN_PROMPT.md`를 읽고, `main`은 건드리지 말고 새 `codex/gameplay-arcade-loop` 브랜치를 따서 작업해줘.
+우선순위는 꽃 타입 확장, 콤보/피버, 결과 칭호, localStorage 랭킹이야.
+구현 후 `npm run build`를 통과시키고 현재 작업 브랜치에만 push해줘.
+```
+
 ### 초기 MVP로 확인
 
 ```txt
@@ -110,12 +119,13 @@ npm run verify
 
 우선순위 높은 순서:
 
-1. 결과 화면 강화: 최고 점수, 최고 콤보, 칭호
-2. localStorage 랭킹 저장
-3. 방해 꽃 또는 감점 꽃 추가
-4. 운영자 설정 패널: 게임 시간, 민감도, 거리 기준값
-5. MediaPipe 모델 파일 로컬 저장으로 오프라인 운영 안정화
-6. 포토카드/결과 이미지 생성
+1. 게임화 1차: `docs/GAME_DESIGN_PROMPT.md` 기준으로 꽃 타입, 콤보, 피버, 결과 칭호, localStorage 랭킹 추가
+2. 결과 화면 강화: 최고 점수, 최고 콤보, 칭호
+3. localStorage 랭킹 저장
+4. 방해 꽃 또는 감점 꽃 추가
+5. 운영자 설정 패널: 게임 시간, 민감도, 거리 기준값
+6. MediaPipe 모델 파일 로컬 저장으로 오프라인 운영 안정화
+7. 포토카드/결과 이미지 생성
 
 ## 안전 규칙
 
