@@ -3,3 +3,7 @@ dist/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+launcher/**/bin/
+launcher/**/obj/
+launcher/publish/
+launcher/**/app-dist.zip

@@ -62,6 +62,20 @@ npm run dev
 npm run verify
 ```
 
+Windows exe 생성:
+
+```bash
+npm run build
+Compress-Archive -Path .\dist\* -DestinationPath .\launcher\CoolFlowerCatcherLauncher\app-dist.zip -Force
+dotnet publish .\launcher\CoolFlowerCatcherLauncher\CoolFlowerCatcherLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o .\launcher\publish
+```
+
+생성 결과:
+
+```txt
+launcher\publish\쿨라워꽃잡기.exe
+```
+
 ## Codex에게 바로 줄 지시문
 
 ### 게임화 작업 시작
@@ -165,3 +179,4 @@ git switch backup/initial-mvp
 - 사용자 동의 문구 없이 사진/영상 캡처 기능을 넣지 않는다.
 - 현장에서는 게임 시작 전 손 인식 상태가 안정적인지 확인한다.
 - `git reset --hard`, 강제 push, `main` merge는 사용자가 명시적으로 요청할 때만 한다.
+- exe는 로컬 서버를 띄우고 브라우저를 여는 런처다. 창을 닫으면 게임도 종료된다.
