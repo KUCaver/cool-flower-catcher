@@ -6,6 +6,13 @@ const FLOWER_TTL_MS = 2_600;
 const MAX_FLOWERS = 7;
 const CATCH_PADDING = 34;
 
+export const PLAY_AREA = {
+  xMin: 0.15,
+  xMax: 0.85,
+  yMin: 0.18,
+  yMax: 0.82,
+} as const;
+
 const FLOWER_KINDS: Record<FlowerKind, { points: number; radius: number }> = {
   basic: { points: 10, radius: 42 },
   gold: { points: 30, radius: 34 },
@@ -77,7 +84,7 @@ export class FlowerGameEngine {
     }
   }
 
-  attemptCatch({ palm, grabStarted }: CatchAttempt) {
+  attemptCatch({ palm, grabStarted, hitboxScale }: CatchAttempt) {
     if (this.status !== "playing" || !grabStarted) {
       return;
     }
@@ -87,7 +94,7 @@ export class FlowerGameEngine {
 
     this.flowers.forEach((flower, index) => {
       const hitDistance = distance(palm, flower);
-      const hitRadius = flower.radius + CATCH_PADDING;
+      const hitRadius = flower.radius + CATCH_PADDING * hitboxScale;
 
       if (hitDistance < hitRadius && hitDistance < nearestDistance) {
         caughtIndex = index;
@@ -123,22 +130,28 @@ export class FlowerGameEngine {
   private spawnFlower(now: number, width: number, height: number) {
     const kind = pickFlowerKind();
     const config = FLOWER_KINDS[kind];
-    const safeX = Math.max(width - config.radius * 2, 1);
-    const safeY = Math.max(height - config.radius * 2, 1);
+    const minX = width * PLAY_AREA.xMin + config.radius;
+    const maxX = width * PLAY_AREA.xMax - config.radius;
+    const minY = height * PLAY_AREA.yMin + config.radius;
+    const maxY = height * PLAY_AREA.yMax - config.radius;
 
     this.flowers.push({
       id: this.nextFlowerId,
       kind,
       points: config.points,
       radius: config.radius,
-      x: config.radius + Math.random() * safeX,
-      y: config.radius + Math.random() * safeY,
+      x: randomBetween(minX, Math.max(minX, maxX)),
+      y: randomBetween(minY, Math.max(minY, maxY)),
       bornAt: now,
       expiresAt: now + FLOWER_TTL_MS,
     });
 
     this.nextFlowerId += 1;
   }
+}
+
+function randomBetween(min: number, max: number) {
+  return min + Math.random() * (max - min);
 }
 
 function pickFlowerKind(): FlowerKind {

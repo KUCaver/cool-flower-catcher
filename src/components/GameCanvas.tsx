@@ -1,9 +1,9 @@
 import { RefObject, useEffect, useRef } from "react";
-import { FlowerGameEngine } from "../game/flowerGame";
+import { FlowerGameEngine, PLAY_AREA } from "../game/flowerGame";
 import type { Flower, GameSnapshot, GameStatus } from "../game/types";
 import type { HandFrame } from "../hooks/useHandTracking";
 import type { Landmark, Point } from "../vision/gesture";
-import { toMirroredCanvasPoint } from "../vision/gesture";
+import { getCatchScaleForDistance, toMirroredCanvasPoint } from "../vision/gesture";
 
 const HAND_CONNECTIONS = [
   [0, 1],
@@ -121,6 +121,7 @@ export function GameCanvas({
 
       drawCamera(context, videoRef.current, width, height);
       drawVignette(context, width, height);
+      drawPlayArea(context, width, height);
 
       const engine = engineRef.current;
       if (gameStatusRef.current === "playing") {
@@ -134,6 +135,7 @@ export function GameCanvas({
             palm: currentFrame.mirroredPalm,
             grabStarted,
             now,
+            hitboxScale: getCatchScaleForDistance(currentFrame.distanceStatus),
           });
         }
 
@@ -223,6 +225,20 @@ function drawVignette(context: CanvasRenderingContext2D, width: number, height: 
   gradient.addColorStop(1, "rgba(3,16,11,0.48)");
   context.fillStyle = gradient;
   context.fillRect(0, 0, width, height);
+}
+
+function drawPlayArea(context: CanvasRenderingContext2D, width: number, height: number) {
+  const x = width * PLAY_AREA.xMin;
+  const y = height * PLAY_AREA.yMin;
+  const playWidth = width * (PLAY_AREA.xMax - PLAY_AREA.xMin);
+  const playHeight = height * (PLAY_AREA.yMax - PLAY_AREA.yMin);
+
+  context.save();
+  context.setLineDash([12, 12]);
+  context.lineWidth = 2;
+  context.strokeStyle = "rgba(255, 255, 255, 0.26)";
+  context.strokeRect(x, y, playWidth, playHeight);
+  context.restore();
 }
 
 function drawFlowers(context: CanvasRenderingContext2D, flowers: Flower[], now: number) {

@@ -14,6 +14,15 @@ export type GrabResult = {
   pinchRatio: number;
 };
 
+export type HandDistanceStatus = "too-far" | "far" | "good" | "close" | "too-close";
+
+export const HAND_DISTANCE_LIMITS = {
+  tooFarMax: 45,
+  recommendedMin: 70,
+  recommendedMax: 170,
+  tooCloseMin: 220,
+} as const;
+
 export const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
 export function getPalmCenter(landmarks: Landmark[]): Point {
@@ -50,6 +59,57 @@ export function detectGrab(landmarks: Landmark[], threshold: number): GrabResult
     isGrab: pinchRatio < threshold,
     pinchRatio,
   };
+}
+
+export function getPalmWidthPx(landmarks: Landmark[], videoWidth: number): number {
+  const indexMcp = landmarks[5];
+  const pinkyMcp = landmarks[17];
+
+  if (!indexMcp || !pinkyMcp || videoWidth <= 0) {
+    return 0;
+  }
+
+  return distance(indexMcp, pinkyMcp) * videoWidth;
+}
+
+export function getHandDistanceStatus(palmWidthPx: number): HandDistanceStatus {
+  if (palmWidthPx < HAND_DISTANCE_LIMITS.tooFarMax) {
+    return "too-far";
+  }
+
+  if (palmWidthPx < HAND_DISTANCE_LIMITS.recommendedMin) {
+    return "far";
+  }
+
+  if (palmWidthPx <= HAND_DISTANCE_LIMITS.recommendedMax) {
+    return "good";
+  }
+
+  if (palmWidthPx <= HAND_DISTANCE_LIMITS.tooCloseMin) {
+    return "close";
+  }
+
+  return "too-close";
+}
+
+export function canStartWithHand(status: HandDistanceStatus): boolean {
+  return status !== "too-far" && status !== "too-close";
+}
+
+export function getCatchScaleForDistance(status: HandDistanceStatus): number {
+  if (status === "too-far") {
+    return 1.35;
+  }
+
+  if (status === "far") {
+    return 1.25;
+  }
+
+  if (status === "close") {
+    return 1.08;
+  }
+
+  return 1;
 }
 
 export function toMirroredCanvasPoint(point: Point, width: number, height: number): Point {

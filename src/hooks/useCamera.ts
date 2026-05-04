@@ -28,6 +28,7 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>) {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 30 },
           facingMode: "user",
         },
       });

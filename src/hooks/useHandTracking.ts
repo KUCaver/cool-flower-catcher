@@ -3,7 +3,10 @@ import type { HandLandmarkerResult } from "@mediapipe/tasks-vision";
 import { createHandTracker, type HandTracker } from "../vision/handLandmarker";
 import {
   detectGrab,
+  getHandDistanceStatus,
   getPalmCenter,
+  getPalmWidthPx,
+  type HandDistanceStatus,
   type Landmark,
   type Point,
   toMirroredCanvasPoint,
@@ -17,6 +20,8 @@ export type HandFrame = {
   mirroredPalm: Point;
   isGrab: boolean;
   pinchRatio: number;
+  palmWidthPx: number;
+  distanceStatus: HandDistanceStatus;
   raw: HandLandmarkerResult;
 };
 
@@ -87,6 +92,8 @@ export function useHandTracking(params: {
           const palm = getPalmCenter(landmarks);
           const grab = detectGrab(landmarks, grabThreshold);
           const mirroredPalm = toMirroredCanvasPoint(palm, canvasSize.x, canvasSize.y);
+          const palmWidthPx = getPalmWidthPx(landmarks, video.videoWidth);
+          const distanceStatus = getHandDistanceStatus(palmWidthPx);
 
           if (timestampMs - lastStatePublishRef.current > 33) {
             lastStatePublishRef.current = timestampMs;
@@ -96,6 +103,8 @@ export function useHandTracking(params: {
               mirroredPalm,
               isGrab: grab.isGrab,
               pinchRatio: grab.pinchRatio,
+              palmWidthPx,
+              distanceStatus,
               raw: result,
             });
           }

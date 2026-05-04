@@ -29,4 +29,5 @@ export type CatchAttempt = {
   palm: Point;
   grabStarted: boolean;
   now: number;
+  hitboxScale: number;
 };

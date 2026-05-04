@@ -164,6 +164,29 @@ h1 {
   line-height: 1.65;
 }
 
+.calibration-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.calibration-card span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.calibration-card strong {
+  color: var(--green-dark);
+  font-size: 22px;
+  line-height: 1;
+}
+
 .overlay-actions {
   margin-top: 22px;
 }
@@ -289,6 +312,35 @@ h1 {
 .debug-readout strong {
   color: var(--pink);
   font-size: 22px;
+}
+
+.debug-readout.distance {
+  align-items: baseline;
+}
+
+.debug-readout.distance strong {
+  color: var(--green-dark);
+  font-size: 17px;
+}
+
+.debug-readout small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.distance-too-far strong,
+.distance-too-close strong {
+  color: #b00020;
+}
+
+.distance-far strong,
+.distance-close strong {
+  color: #9d6a00;
+}
+
+.distance-good strong {
+  color: var(--green);
 }
 
 .guide {
